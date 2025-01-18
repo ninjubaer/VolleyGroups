@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>VolleyGroups</title>
+	</head>
+	<body>
+		<div id="app">
+			<div id="appbar">
+				<p id="title">VolleyGroups</p>
+				<button id="closecircle"></button>
+				<button id="minimizecircle"></button>
+			</div>
+			<div id="content">
+				<div id="players">
+					<h1>Players</h1>
+					<textarea id="playerlist" spellcheck="false"></textarea>
+				</div>
+				<div id="groups">
+					<h1>Players per group</h1>
+					<div id="numberofgroups">
+						<input
+							type="range"
+							id="groupslider"
+							min="0"
+							max="0"
+							value="0"
+							step="1"
+						/>
+						<p id="groupnumer">0</p>
+					</div>
+				</div>
+				<button id="startbutton">Start Game</button>
+			</div>
+		</div>
+	</body>
+</html>
+<script>
+	document.addEventListener("DOMContentLoaded", async () => {
+		const { invoke } = window.__TAURI__;
+		const app = document.getElementById("app");
+		const appbar = document.getElementById("appbar");
+		const title = document.getElementById("title");
+		const closecircle = document.getElementById("closecircle");
+		const minimizecircle = document.getElementById("minimizecircle");
+		const playerlist = document.getElementById("playerlist");
+		const slider = document.getElementById("groupslider");
+		const startbutton = document.getElementById("startbutton");
+        localStorage.clear();
+
+		appbar.addEventListener("mousedown", async (e) => {
+			if (e.target != appbar && e.target != title) return;
+			invoke("drag_window");
+		});
+
+		closecircle.addEventListener("click", async () => {
+			invoke("close_window");
+		});
+
+		minimizecircle.addEventListener("click", async () => {
+			invoke("minimize_window");
+		});
+
+		playerlist.addEventListener("input", () => {
+            let players = playerlist.value.split("\n");
+            //remove all empty elements
+            for (let i = 0; i < players.length; i++) {
+                if (players[i].trim() == "") {
+                    players.splice(i, 1);
+                    i--;
+                }
+            }
+			const playerslength = players.length;
+			document.getElementById("groupslider").max = Math.floor(
+				playerslength / 2
+			);
+		});
+
+		slider.addEventListener("input", () => {
+			document.getElementById("groupnumer").innerText = slider.value;
+		});
+
+		startbutton.addEventListener("click", () => {
+			if (playerlist.value.split("\n").length < 2) {
+				warningPopup(
+					"Not enough players",
+					"You need at least 2 players to start the game."
+				);
+				return;
+			}
+			if (slider.value == 0) {
+				warningPopup(
+					"No groups",
+					"You need at least 1 group to start the game."
+				);
+				return;
+			}
+			let players = playerlist.value.split("\n");
+			for (let i = 0; i < players.length; i++) {
+                if (players[i].trim() == "") {
+                    players.splice(i, 1);
+                    i--;
+                }
+            }
+			localStorage.setItem("players", JSON.stringify(players));
+            localStorage.setItem("groups", slider.value);
+            window.location.href = "/game.html";
+		});
+
+		function warningPopup(title, text) {
+			const blur = document.createElement("div");
+			blur.style.position = "fixed";
+			blur.style.top = "30px";
+			blur.style.left = "0";
+			blur.style.width = "100%";
+			blur.style.borderBottomLeftRadius = "15px";
+			blur.style.borderBottomRightRadius = "15px";
+			blur.style.height = "calc(100% - 30px)";
+			blur.style.background = "rgba(0, 0, 0, 0.2)";
+			blur.style.backdropFilter = "blur(2px)";
+			blur.style.webkitBackdropFilter = "blur(2px)";
+			blur.style.zIndex = "99";
+			document.body.appendChild(blur);
+
+			const warning = document.createElement("div");
+			warning.style.position = "fixed";
+			warning.style.top = "50%";
+			warning.style.left = "50%";
+			warning.style.transform = "translate(-50%, -50%)";
+			warning.style.width = "300px";
+			warning.style.height = "200px";
+			warning.style.background = "var(--surface-color)";
+			warning.style.border = "2px solid var(--accent-color)";
+			warning.style.borderRadius = "15px";
+			warning.style.zIndex = "100";
+			warning.style.display = "flex";
+			warning.style.flexDirection = "column";
+			warning.style.alignItems = "center";
+			warning.style.justifyContent = "center";
+			warning.style.gap = "15px";
+			warning.style.padding = "20px";
+			warning.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+			warning.innerHTML = `
+                <h1>${title}</h1>
+                <p>${text}</p>
+                <button id="closewarning" style="width: 100px; height: 20px; background: var(--accent-color); border: none; outline: none; border-radius: 5px; color: var(--text-color); ">Close</button>
+            `;
+			document.body.appendChild(warning);
+			let closewarning;
+			(closewarning =
+				document.getElementById("closewarning")).addEventListener(
+				"click",
+				() => {
+					document.body.removeChild(warning);
+					document.body.removeChild(blur);
+				}
+			);
+            closewarning.focus();
+		}
+	});
+</script>
+<style>
+	* {
+		user-select: none;
+		margin: 0;
+		padding: 0;
+		box-sizing: inherit;
+		@font-face {
+			font-family: "Roboto";
+			src: url("assets:///assets/Roboto-Bold.ttf") format("truetype");
+		}
+		font-family: "Roboto";
+	}
+	:root {
+		/* Light theme variables */
+		--light-bg: #ffffff;
+		--light-text: #1a1a1a;
+		--light-accent: #4dabf7;
+		--light-surface: #f5f5f5;
+		--light-border: #e0e0e0;
+		--light-appbar: #f0f0f0;
+
+		/* Dark theme variables */
+		--dark-bg: #1a1a1a;
+		--dark-text: #ffffff;
+		--dark-accent: #4dabf7;
+		--dark-surface: #2d2d2d;
+		--dark-border: #404040;
+		--dark-appbar: #161616;
+
+		/* Default theme (light) */
+		--bg-color: var(--light-bg);
+		--text-color: var(--light-text);
+		--accent-color: var(--light-accent);
+		--surface-color: var(--light-surface);
+		--border-color: var(--light-border);
+		--appbar-color: var(--light-appbar);
+		--width: 700px;
+		--height: 400px;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg-color: var(--dark-bg);
+			--text-color: var(--dark-text);
+			--accent-color: var(--dark-accent);
+			--surface-color: var(--dark-surface);
+			--border-color: var(--dark-border);
+			--appbar-color: var(--dark-appbar);
+		}
+	}
+
+	/* Dark theme class for manual toggle */
+	.dark-theme {
+		--bg-color: var(--dark-bg);
+		--text-color: var(--dark-text);
+		--accent-color: var(--dark-accent);
+		--surface-color: var(--dark-surface);
+		--border-color: var(--dark-border);
+		--appbar-color: var(--dark-appbar);
+	}
+	.light-theme {
+		--bg-color: var(--light-bg);
+		--text-color: var(--light-text);
+		--accent-color: var(--light-accent);
+		--surface-color: var(--light-surface);
+		--border-color: var(--light-border);
+		--appbar-color: var(--light-appbar);
+	}
+	html,
+	body {
+		background: transparent;
+		width: var(--width);
+		height: var(--height);
+		box-sizing: border-box;
+		overflow: hidden;
+		margin: 0;
+		padding: 0;
+		color: var(--text-color);
+	}
+	#app {
+		width: var(--width);
+		height: var(--height);
+		background: var(--bg-color);
+		border-radius: 15px;
+	}
+	#appbar {
+		width: var(--width);
+		height: 30px;
+		background: var(--appbar-color);
+		border-radius: 15px 15px 0 0;
+	}
+	#closecircle {
+		width: 12px;
+		height: 12px;
+		position: fixed;
+		top: 9px;
+		left: 12px;
+		border-radius: 50%;
+		background: #ff5f57;
+		border: none;
+		cursor: pointer;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	}
+	#closecircle:hover {
+		filter: brightness(0.9);
+	}
+	#closecircle:active {
+		filter: brightness(0.8);
+	}
+	#minimizecircle {
+		width: 12px;
+		height: 12px;
+		position: fixed;
+		top: 9px;
+		left: 32px;
+		border-radius: 50%;
+		background: #ffbd2e;
+		border: none;
+		cursor: pointer;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	}
+	#minimizecircle:hover {
+		filter: brightness(0.9);
+	}
+	#minimizecircle:active {
+		filter: brightness(0.8);
+	}
+	#title {
+		position: fixed;
+		top: 7px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 14px;
+		font-weight: 600;
+	}
+	#groups {
+		margin: 15px 20px 0 20px;
+	}
+	#removeGroup {
+		position: relative;
+		top: 5px;
+		width: calc(var(--width) / 2 - 25px);
+		outline: none;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border-radius: 5px;
+		height: 30px;
+		border: none;
+	}
+	#addGroup {
+		position: relative;
+		top: 5px;
+		left: 10px;
+		width: calc(var(--width) / 2 - 25px);
+		outline: none;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border-radius: 5px;
+		height: 30px;
+		border: none;
+	}
+	#addGroup:hover,
+	#removeGroup:hover {
+		filter: brightness(0.9);
+	}
+	#addGroup:active,
+	#removeGroup:active {
+		filter: brightness(0.8);
+	}
+	#addGroup:focus,
+	#removeGroup:focus {
+		border: 1px solid var(--text-color);
+	}
+	#players {
+		width: calc(var(--width) - 40px);
+		position: relative;
+		left: 20px;
+		top: 10px;
+	}
+	#playerlist {
+		margin-top: 5px;
+		width: 100%;
+		height: 140px;
+		border: 2px solid var(--accent-color);
+		outline: none;
+		border-radius: 15px;
+		resize: none;
+		padding: 10px;
+		font-size: 18px;
+		background: transparent;
+		color: var(--text-color);
+		overflow-y: auto;
+		scrollbar-width: 10px;
+		scrollbar-color: var(--accent-color) transparent;
+		-ms-scrollbar-arrow-color: transparent;
+		scrollbar-arrow-color: transparent;
+	}
+	#playerlist:focus {
+		outline: none;
+	}
+	#groupslider {
+		accent-color: var(--accent-color);
+		width: 100%;
+		margin-top: 5px;
+		outline: none;
+		border: none;
+	}
+	#groupnumer {
+		font-size: 25pt;
+		position: fixed;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+	#startbutton {
+		position: fixed;
+		left: 50%;
+		top: 350px;
+		transform: translateX(-50%);
+		width: calc(100% - 40px);
+		outline: none;
+		border: none;
+		height: 35px;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border-radius: 7px;
+		font-size: 13pt;
+	}
+	h1 {
+		font-size: 20pt;
+	}
+</style>
