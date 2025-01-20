@@ -16,6 +16,7 @@
 				<div id="toprow">
 					<button id="nextroundbtn">Next Round</button>
 					<button id="leaderboardbtn">Leaderboard</button>
+					<button id="settingsbtn">Settings</button>
 				</div>
 				<div id="games"></div>
 			</div>
@@ -24,34 +25,53 @@
 </html>
 <script>
 	class Game {
-		constructor() {
-			this.teams = [
-				{
+		constructor(groups) {
+			this.teams = [];
+			for (let i = 0; i < groups; i++) {
+				this.teams.push({
 					players: [],
 					score: 0,
-				},
-				{
-					players: [],
-					score: 0,
-				},
-			];
+				});
+			}
 			this.field = "";
 		}
 	}
 
 	class Player {
 		constructor() {
-			this.teammates = [];
-			this.field = "";
 			this.score = {
 				us: 0,
 				them: 0,
 			};
+			this.wins = 0;
+			this.losses = 0;
+			this.score = 0;
+			this.player = "";
 		}
 	}
 	let data;
 	let groups;
 	document.addEventListener("DOMContentLoaded", async () => {
+		window.addEventListener(
+			"wheel",
+			(event) => {
+				if (event.deltaX < 0) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
+		window.addEventListener(
+			"touchstart",
+			(event) => {
+				if (event.touches.length > 1) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
 		const { invoke } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
@@ -64,14 +84,13 @@
 		const players = JSON.parse(localStorage.getItem("players"));
 		groups = localStorage.getItem("groups");
 
-		data = { players: {}, games: [] };
+		data = { players: [], games: [] };
 
-		players.forEach((player) => {
-			data.players[player] = {
-				games: [],
-			};
+		players.forEach((player, index) => {
+			data.players.push(new Player());
+			data.players[index].player = player;
 		});
-		console.log(data);
+		data.players.sort(lbsort);
 
 		appbar.addEventListener("mousedown", async (e) => {
 			if (e.target != appbar && e.target != title) return;
@@ -87,8 +106,148 @@
 		});
 
 		leaderboardbtn.addEventListener("click", () => {
-			console.log(getLeaderboard());
+			const blur = document.createElement("div");
+			blur.id = "blur";
+			document.body.appendChild(blur);
+
+			const leaderboardContainer = document.createElement("div");
+			leaderboardContainer.id = "leaderboardContainer";
+
+			const leaderboard = document.createElement("table");
+			leaderboard.id = "leaderboard";
+
+			const caption = document.createElement("h3");
+			caption.innerText = "Leaderboard";
+			caption.id = "leaderboardCaption";
+
+			const lbbox = document.createElement("div");
+			lbbox.id = "lbbox";
+			leaderboardContainer.appendChild(caption);
+			lbbox.appendChild(leaderboard);
+			leaderboardContainer.appendChild(lbbox);
+			document.body.appendChild(leaderboardContainer);
+
+			const headerRow = document.createElement("tr");
+			const headers = ["Player", "Wins", "Losses", "Diff"];
+			headers.forEach((headerText) => {
+				const th = document.createElement("th");
+				th.innerText = headerText;
+				headerRow.appendChild(th);
+			});
+			leaderboard.appendChild(headerRow);
+
+			data.players.sort(lbsort);
+			data.players.forEach((player) => {
+				let tr = document.createElement("tr");
+				let td = document.createElement("td");
+				td.innerText = player.player;
+				tr.appendChild(td);
+				td = document.createElement("td");
+				td.innerText = player.wins;
+				tr.appendChild(td);
+				td = document.createElement("td");
+				td.innerText = player.losses;
+				tr.appendChild(td);
+				td = document.createElement("td");
+				td.innerText = player.score;
+				tr.appendChild(td);
+				leaderboard.appendChild(tr);
+			});
+
+			const closeLeaderboard = document.createElement("button");
+			closeLeaderboard.innerText = "Close";
+			closeLeaderboard.style.width = "100px";
+			closeLeaderboard.style.height = "20px";
+			closeLeaderboard.style.background = "var(--accent-color)";
+			closeLeaderboard.style.border = "none";
+			closeLeaderboard.style.borderRadius = "5px";
+			closeLeaderboard.style.color = "var(--text-color)";
+			closeLeaderboard.style.cursor = "pointer";
+			closeLeaderboard.style.marginBottom = "10px";
+			leaderboardContainer.appendChild(closeLeaderboard);
+
+			blur.addEventListener("click", () => {
+				document.body.removeChild(leaderboardContainer);
+				document.body.removeChild(blur);
+			});
+			closeLeaderboard.addEventListener("click", () => {
+				document.body.removeChild(leaderboardContainer);
+				document.body.removeChild(blur);
+			});
+			closeLeaderboard.focus();
 		});
+
+		nextroundbtn.addEventListener("click", () => {
+			// check if all inputs have values:
+			const inputs = document.querySelectorAll("input[type='number']");
+			let allFilled = true;
+			inputs.forEach((input) => {
+				if (input.value === "") allFilled = false;
+			});
+			if (!allFilled) {
+				warningPopup("Warning", "Please fill in all scores.");
+				return;
+			}
+			const game = data.games[data.games.length - 1];
+			for (let i = 0; i < game.teams.length / 2; i++) {
+				const team1 = game.teams[i * 2];
+				const team2 = game.teams[i * 2 + 1];
+				const score1 = parseInt(inputs[i * 2].value, 10);
+				const score2 = parseInt(inputs[i * 2 + 1].value, 10);
+				team1.score = score1;
+				team2.score = score2;
+				if (score1 > score2) {
+					team1.players.forEach((player) => {
+						player.wins++;
+						player.score += score1 - score2;
+					});
+					team2.players.forEach((player) => {
+						player.losses++;
+						player.score += score2 - score1;
+					});
+				} else if (score1 < score2) {
+					team2.players.forEach((player) => {
+						player.wins++;
+						player.score += score2 - score1;
+					});
+					team1.players.forEach((player) => {
+						player.losses++;
+						player.score += score1 - score2;
+					});
+				} else {
+					warningPopup("Warning", "Scores cannot be equal.");
+				}
+			}
+			const nextRound = getGames();
+			const games = document.getElementById("games");
+			games.innerHTML = "";
+			nextRound.forEach((team, index) => {
+				let table = document.createElement("table");
+				let caption = document.createElement("caption");
+				caption.innerText = `Team ${index + 1}`;
+				table.appendChild(caption);
+
+				team.forEach((player) => {
+					let tr = document.createElement("tr");
+					let td = document.createElement("td");
+					td.innerText = player.player;
+					tr.appendChild(td);
+					table.appendChild(tr);
+				});
+
+				let tr = document.createElement("tr");
+				let td = document.createElement("td");
+				let input = document.createElement("input");
+				input.type = "number";
+				input.placeholder = "score";
+				td.appendChild(input);
+				tr.appendChild(td);
+				table.appendChild(tr);
+
+				games.appendChild(table);
+			});
+		});
+
 		const games = document.getElementById("games");
 		const gamelist = getGames();
 		console.log(gamelist);
@@ -101,8 +260,7 @@
 			team.forEach((player) => {
 				let tr = document.createElement("tr");
 				let td = document.createElement("td");
-				console.log(player);
-				td.innerText = player;
+				td.innerText = player.player;
 				tr.appendChild(td);
 				table.appendChild(tr);
 			});
@@ -120,71 +278,136 @@
 		});
 	});
 
-	function getGames() {
-		const players = data.players;
-		const games = data.games;
-		const playerkeys = Object.keys(players);
-		let uneven = playerkeys.length % groups;
-		console.log(uneven);
-		console.log(playerkeys);
-		console.log(groups);
-		console.log(games.length);
-		if (games.length == 0) {
-			// first game
-			let teams = [];
-			for (let i = 0; i < Math.floor(playerkeys.length / groups); i++) {
-				let team = [];
-				for (let j = 0; j < groups; j++) {
-					let player = playerkeys[i * groups + j];
-					team.push(player);
-				}
-				teams.push(team);
+	function warningPopup(title, text) {
+		const blur = document.createElement("div");
+		blur.style.position = "fixed";
+		blur.style.top = "30px";
+		blur.style.left = "0";
+		blur.style.width = "100%";
+		blur.style.borderBottomLeftRadius = "15px";
+		blur.style.borderBottomRightRadius = "15px";
+		blur.style.height = "calc(100% - 30px)";
+		blur.style.background = "rgba(0, 0, 0, 0.2)";
+		blur.style.backdropFilter = "blur(2px)";
+		blur.style.webkitBackdropFilter = "blur(2px)";
+		blur.style.zIndex = "99";
+		document.body.appendChild(blur);
+
+		const warning = document.createElement("div");
+		warning.style.position = "fixed";
+		warning.style.top = "50%";
+		warning.style.left = "50%";
+		warning.style.transform = "translate(-50%, -50%)";
+		warning.style.width = "300px";
+		warning.style.height = "200px";
+		warning.style.background = "var(--surface-color)";
+		warning.style.border = "2px solid var(--accent-color)";
+		warning.style.borderRadius = "15px";
+		warning.style.zIndex = "100";
+		warning.style.display = "flex";
+		warning.style.flexDirection = "column";
+		warning.style.alignItems = "center";
+		warning.style.justifyContent = "center";
+		warning.style.gap = "15px";
+		warning.style.padding = "20px";
+		warning.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+		warning.innerHTML = `
+                <h1>${title}</h1>
+                <p>${text}</p>
+                <button id="closewarning" style="width: 100px; height: 20px; background: var(--accent-color); border: none; outline: none; border-radius: 5px; color: var(--text-color); ">Close</button>
+            `;
+		document.body.appendChild(warning);
+		let closewarning;
+		blur.addEventListener("click", () => {
+			document.body.removeChild(warning);
+			document.body.removeChild(blur);
+		});
+		(closewarning =
+			document.getElementById("closewarning")).addEventListener(
+			"click",
+			(e) => {
+				e.stopPropagation();
+				document.body.removeChild(warning);
+				document.body.removeChild(blur);
 			}
-			for (let i = 0; i < uneven; i++) {
-				let team = [];
-				for (let j = 0; j < groups; j++) {
-					let player = playerkeys[i * groups + j];
-					team.push(player);
-				}
-				teams.push(team);
-			}
-			return teams;
-		}
-		let lastgame = games.at(-1);
-		let lastteams = lastgame.teams;
-		let leaderboards = getLeaderboard();
-		console.log(leaderboards);
+		);
+		closewarning.focus();
 	}
 
-	function getLeaderboard() {
-		const players = data.players;
-		const playerkeys = Object.keys(players);
-		let leaderboard = [];
-		playerkeys.forEach((player) => {
-			let games = players[player].games;
-			let score = 0;
-			let wins = 0;
-			let gamesplayed = games.length;
-			games.forEach((game) => {
-				score += game.score;
-				if (game.score > 0) wins++;
-			});
-			leaderboard.push({
-				player: player,
-				score: score,
-				wins: wins,
-				gamesplayed: gamesplayed,
-			});
+	function getGames() {
+		const groups = parseInt(localStorage.getItem("groups"), 10);
+		const distributedGroups = distributePlayers(data.players, groups);
+		const game = new Game(groups);
+		distributedGroups.forEach((team, index) => {
+			game.teams[index].players = team;
 		});
-		return leaderboard.sort((a, b) => {
-			if (a.winds > b.wins) return -1;
-			if (a.wins < b.wins) return 1;
-			if (a.score > b.score) return -1;
-			if (a.score < b.score) return 1;
-			if (a.gamesplayed < b.gamesplayed) return -1;
-			if (a.gamesplayed > b.gamesplayed) return 1;
-			return 0;
-		});
+		data.games.push(game);
+		return distributedGroups;
+	}
+
+	function distributePlayers(players, groups) {
+		players.sort(lbsort);
+		const playerCount = players.length;
+		const distributedGroups = Array.from({ length: groups }, () => []);
+		const baseGroupSize = Math.floor(playerCount / groups);
+		let remainingPlayers = playerCount - baseGroupSize * groups;
+		let playerIndex = 0;
+
+		for (let group = 0; group < groups / 2; group++) {
+			const playersInMatch = players.slice(
+				playerIndex,
+				playerIndex + baseGroupSize * 2
+			);
+
+			let team1 = [];
+			let team2 = [];
+			console.log(playersInMatch.length);
+			console.log(
+				playersInMatch[0],
+				playersInMatch[playersInMatch.length - 1 - 0]
+			);
+			console.log(
+				playersInMatch[1],
+				playersInMatch[playersInMatch.length - 1 - 1]
+			);
+			console.log(
+				playersInMatch[2],
+				playersInMatch[playersInMatch.length - 1 - 2]
+			);
+			for (let i = 0; i < playersInMatch.length / 2; i += 2) {
+				team1.push(playersInMatch[i]);
+				team2.push(playersInMatch[i + 1]);
+				if (
+					!team2.includes(
+						playersInMatch[playersInMatch.length - 1 - i]
+					)
+				) {
+					team1.push(playersInMatch[playersInMatch.length - 1 - i]);
+				}
+				if (
+					!team1.includes(
+						playersInMatch[playersInMatch.length - 2 - i]
+					)
+				) {
+					team2.push(playersInMatch[playersInMatch.length - 2 - i]);
+				}
+			}
+			distributedGroups[group * 2] = team1;
+			distributedGroups[group * 2 + 1] = team2;
+			playerIndex += playersInMatch.length;
+		}
+		for (let i = 0; i < remainingPlayers; i++) {
+			distributedGroups[groups - 1 - i].push(players[playerIndex + i]);
+		}
+		return distributedGroups;
+	}
+
+	function lbsort(a, b) {
+		if (a.wins > b.wins) return -1;
+		if (a.wins < b.wins) return 1;
+		if (a.score > b.score) return -1;
+		if (a.score < b.score) return 1;
+		return 0;
 	}
 </script>
 <style>
@@ -329,17 +552,18 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-        box-sizing: border-box;
+		box-sizing: border-box;
 	}
 	#toprow {
-		width: 100%;
+		width: calc(100% - 40px);
 		height: 50px;
 		display: flex;
-		justify-content: space-around;
+		justify-content: center;
+		gap: 16px;
 		align-items: center;
 	}
 	#nextroundbtn {
-		width: 300px;
+		width: 210px;
 		height: 40px;
 		background: var(--accent-color);
 		color: var(--text-color);
@@ -348,7 +572,16 @@
 		cursor: pointer;
 	}
 	#leaderboardbtn {
-		width: 300px;
+		width: 210px;
+		height: 40px;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+	}
+	#settingsbtn {
+		width: 210px;
 		height: 40px;
 		background: var(--accent-color);
 		color: var(--text-color);
@@ -361,10 +594,10 @@
 		height: calc(100% - 80px);
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        padding: 20px;
-        overflow-y: auto;
-        scrollbar-width: none;
+		gap: 20px;
+		padding: 20px;
+		overflow-y: auto;
+		scrollbar-width: none;
 	}
 	table {
 		border-collapse: collapse;
@@ -395,6 +628,9 @@
 		outline: none;
 		color: var(--text-color);
 		text-align: center;
+		margin: 0;
+		padding: 0;
+		font-size: 14pt;
 	}
 	input[type="number"] {
 		-webkit-appearance: textfield;
@@ -406,5 +642,66 @@
 	input[type="number"]::-webkit-outer-spin-button {
 		-webkit-appearance: none;
 		margin: 0;
+	}
+
+	#blur {
+		position: fixed;
+		top: 30px;
+		left: 0;
+		width: 100%;
+		border-bottom-left-radius: 15px;
+		border-bottom-right-radius: 15px;
+		height: calc(100% - 30px);
+		background: rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(2px);
+		-webkit-backdrop-filter: blur(2px);
+		z-index: 99;
+	}
+	#leaderboardContainer {
+		position: fixed;
+		top: 52%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 450px;
+		height: 350px;
+		background: var(--surface-color);
+		border: 2px solid var(--accent-color);
+		border-radius: 15px;
+		z-index: 100;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	#leaderboardCaption {
+		padding: 15px;
+	}
+	#lbbox {
+		overflow-y: scroll;
+		scrollbar-width: none;
+		box-sizing: border-box;
+		margin-bottom: 10px;
+	}
+
+	#leaderboard table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	th,
+	td {
+		padding: 10px;
+		border: 1px solid var(--accent-color);
+		text-align: center;
+	}
+
+	th {
+		background: var(--surface-color);
+		z-index: 101;
+		box-sizing: border-box;
+		outline: var(--accent-color);
+	}
+	#leaderboard {
+		width: 100%;
+		box-sizing: border-box;
 	}
 </style>

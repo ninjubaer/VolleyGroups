@@ -1,0 +1,4 @@
+/src-tauri/target/
+/volleyGroupsApi/
+*testing.js
+VolleyGroups.msi

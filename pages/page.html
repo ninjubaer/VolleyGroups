@@ -18,7 +18,7 @@
 					<textarea id="playerlist" spellcheck="false"></textarea>
 				</div>
 				<div id="groups">
-					<h1>Players per group</h1>
+					<h1>Groups:</h1>
 					<div id="numberofgroups">
 						<input
 							type="range"
@@ -26,7 +26,7 @@
 							min="0"
 							max="0"
 							value="0"
-							step="1"
+							step="2"
 						/>
 						<p id="groupnumer">0</p>
 					</div>
@@ -38,6 +38,26 @@
 </html>
 <script>
 	document.addEventListener("DOMContentLoaded", async () => {
+		window.addEventListener(
+			"wheel",
+			(event) => {
+				if (event.deltaX < 0) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
+		window.addEventListener(
+			"touchstart",
+			(event) => {
+				if (event.touches.length > 1) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
 		const { invoke } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
@@ -47,7 +67,17 @@
 		const playerlist = document.getElementById("playerlist");
 		const slider = document.getElementById("groupslider");
 		const startbutton = document.getElementById("startbutton");
-        localStorage.clear();
+		localStorage.clear();
+
+		if (playerlist.value != "") {
+			let players = playerlist.value.split("\n");
+			for (let i = 0; i < players.length; i++) {
+				if (players[i].trim() == "") {
+					players.splice(i, 1);
+					i--;
+				}
+			}
+		}
 
 		appbar.addEventListener("mousedown", async (e) => {
 			if (e.target != appbar && e.target != title) return;
@@ -63,18 +93,16 @@
 		});
 
 		playerlist.addEventListener("input", () => {
-            let players = playerlist.value.split("\n");
-            //remove all empty elements
-            for (let i = 0; i < players.length; i++) {
-                if (players[i].trim() == "") {
-                    players.splice(i, 1);
-                    i--;
-                }
-            }
+			let players = playerlist.value.split("\n");
+			for (let i = 0; i < players.length; i++) {
+				if (players[i].trim() == "") {
+					players.splice(i, 1);
+					i--;
+				}
+			}
 			const playerslength = players.length;
-			document.getElementById("groupslider").max = Math.floor(
-				playerslength / 2
-			);
+			document.getElementById("groupslider").max =
+				playerslength & 1 ? playerslength - 1 : playerslength;
 		});
 
 		slider.addEventListener("input", () => {
@@ -98,14 +126,14 @@
 			}
 			let players = playerlist.value.split("\n");
 			for (let i = 0; i < players.length; i++) {
-                if (players[i].trim() == "") {
-                    players.splice(i, 1);
-                    i--;
-                }
-            }
+				if (players[i].trim() == "") {
+					players.splice(i, 1);
+					i--;
+				}
+			}
 			localStorage.setItem("players", JSON.stringify(players));
-            localStorage.setItem("groups", slider.value);
-            window.location.href = "/game.html";
+			localStorage.setItem("groups", slider.value);
+			window.location.href = "/game.html";
 		});
 
 		function warningPopup(title, text) {
@@ -148,15 +176,20 @@
             `;
 			document.body.appendChild(warning);
 			let closewarning;
+			blur.addEventListener("click", () => {
+				document.body.removeChild(warning);
+				document.body.removeChild(blur);
+			});
 			(closewarning =
 				document.getElementById("closewarning")).addEventListener(
 				"click",
-				() => {
+				(e) => {
+					e.stopPropagation();
 					document.body.removeChild(warning);
 					document.body.removeChild(blur);
 				}
 			);
-            closewarning.focus();
+			closewarning.focus();
 		}
 	});
 </script>

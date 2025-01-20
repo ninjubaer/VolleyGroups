@@ -12,18 +12,37 @@
 				<button id="closecircle"></button>
 				<button id="minimizecircle"></button>
 			</div>
-			<button id="startgamebtn">
-				New Game
-			</button>
+			<button id="startgamebtn">New Game</button>
+			<p class="title-text">VolleyGroups made by <span class="namecolor">ninju</span></p>
 		</div>
 	</body>
 </html>
 <script>
 	document.addEventListener("DOMContentLoaded", async () => {
+		window.addEventListener(
+			"wheel",
+			(event) => {
+				if (event.deltaX < 0) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
+		window.addEventListener(
+			"touchstart",
+			(event) => {
+				if (event.touches.length > 1) {
+					event.preventDefault();
+				}
+			},
+			{ passive: false }
+		);
+
 		const { invoke } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
-        const title = document.getElementById("title");
+		const title = document.getElementById("title");
 		const closecircle = document.getElementById("closecircle");
 		const minimizecircle = document.getElementById("minimizecircle");
 		const startgamebtn = document.getElementById("startgamebtn");
@@ -33,13 +52,13 @@
 			invoke("drag_window");
 		});
 
-        closecircle.addEventListener("click", async () => {
-            invoke("close_window");
-        });
+		closecircle.addEventListener("click", async () => {
+			invoke("close_window");
+		});
 
-        minimizecircle.addEventListener("click", async () => {
-            invoke("minimize_window");
-        });
+		minimizecircle.addEventListener("click", async () => {
+			invoke("minimize_window");
+		});
 
 		startgamebtn.addEventListener("click", () => {
 			window.location.href = "/page.html";
@@ -123,7 +142,7 @@
 		overflow: hidden;
 		margin: 0;
 		padding: 0;
-        color: var(--text-color)
+		color: var(--text-color);
 	}
 	#app {
 		width: var(--width);
@@ -194,5 +213,15 @@
 		color: var(--text-color);
 		cursor: pointer;
 		font-size: 14pt;
+	}
+	.title-text {
+		position: fixed;
+		bottom: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 12px;
+	}
+	.namecolor {
+		color: var(--accent-color);
 	}
 </style>

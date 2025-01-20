@@ -9,6 +9,18 @@
     "version": "0.0.0"
   },
   "tauri": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://volleygroups.ninju.dev/api/update"
+      ],
+      "pubkey": "",
+      "windows": {
+        "installMode": "passive",
+        "installerArgs": []
+      }
+    },
     "allowlist": {
       "all": false,
       "shell": {
