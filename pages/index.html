@@ -13,7 +13,9 @@
 				<button id="minimizecircle"></button>
 			</div>
 			<button id="startgamebtn">New Game</button>
-			<p class="title-text">VolleyGroups made by <span class="namecolor">ninju</span></p>
+			<p class="title-text">
+				VolleyGroups made by <span class="namecolor">ninju</span>
+			</p>
 		</div>
 	</body>
 </html>
@@ -39,13 +41,46 @@
 			{ passive: false }
 		);
 
-		const { invoke } = window.__TAURI__;
+		window.addEventListener(
+			"contextmenu",
+			(event) => {
+				event.preventDefault();
+			},
+			{ passive: false }
+		);
+
+		const { invoke, fs, updater, path } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
 		const title = document.getElementById("title");
 		const closecircle = document.getElementById("closecircle");
 		const minimizecircle = document.getElementById("minimizecircle");
 		const startgamebtn = document.getElementById("startgamebtn");
+
+		(async function updateSettings() {
+			const settingsDir = await path.appLocalDataDir()
+			const settingsPath = `${settingsDir}settings.json`;
+			if (!await fs.exists(settingsPath)) {
+				fs.writeFile(settingsPath, JSON.stringify({ theme: "dark", allowDraws: false }));
+			}
+			const settings = JSON.parse(await fs.readTextFile(settingsPath));
+			for (const [key, value] of Object.entries(settings)) {
+				switch (key) {
+					case "theme":
+						document.body.classList.remove("dark-theme", "light-theme");
+						document.body.classList.add(`${value}-theme`);
+						break;
+					default:
+						break;
+				}
+			}
+			localStorage.setItem("settings", JSON.stringify(settings));
+		})().then(() => console.log("Settings updated"));
+
+
+		updater.onUpdaterEvent(({ status }) => {
+			console.log("Updater event:", status);
+		});
 
 		appbar.addEventListener("mousedown", async (e) => {
 			if (e.target != appbar && e.target != title) return;

@@ -58,6 +58,22 @@
 			{ passive: false }
 		);
 
+		window.addEventListener(
+			"contextmenu",
+			(event) => {
+				event.preventDefault();
+			},
+			{ passive: false }
+		)
+
+		const settings = localStorage.getItem("settings")
+			? JSON.parse(localStorage.getItem("settings"))
+			: { theme: "dark", allowDraws: false };
+
+		document.body.classList.remove("dark-theme", "light-theme");
+		document.body.classList.add(`${settings.theme}-theme`);
+
+
 		const { invoke } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
@@ -67,7 +83,6 @@
 		const playerlist = document.getElementById("playerlist");
 		const slider = document.getElementById("groupslider");
 		const startbutton = document.getElementById("startbutton");
-		localStorage.clear();
 
 		if (playerlist.value != "") {
 			let players = playerlist.value.split("\n");

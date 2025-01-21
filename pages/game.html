@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>VolleyGroups</title>
 	</head>
-	<body>
+	<body class="dark-theme">
 		<div id="app">
 			<div id="appbar">
 				<p id="title">VolleyGroups</p>
@@ -30,7 +30,6 @@
 			for (let i = 0; i < groups; i++) {
 				this.teams.push({
 					players: [],
-					score: 0,
 				});
 			}
 			this.field = "";
@@ -47,10 +46,12 @@
 			this.losses = 0;
 			this.score = 0;
 			this.player = "";
+			this.points = 0;
 		}
 	}
 	let data;
 	let groups;
+	let _settings;
 	document.addEventListener("DOMContentLoaded", async () => {
 		window.addEventListener(
 			"wheel",
@@ -72,6 +73,18 @@
 			{ passive: false }
 		);
 
+		window.addEventListener(
+			"contextmenu",
+			(event) => {
+				event.preventDefault();
+			},
+			{ passive: false }
+		)
+
+		_settings = JSON.parse(localStorage.getItem("settings"));
+		document.body.classList.remove("dark-theme", "light-theme");
+		document.body.classList.add(`${_settings.theme}-theme`);
+
 		const { invoke } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
@@ -80,6 +93,7 @@
 		const minimizecircle = document.getElementById("minimizecircle");
 		const nextroundbtn = document.getElementById("nextroundbtn");
 		const leaderboardbtn = document.getElementById("leaderboardbtn");
+		const settingsbtn = document.getElementById("settingsbtn");
 
 		const players = JSON.parse(localStorage.getItem("players"));
 		groups = localStorage.getItem("groups");
@@ -128,7 +142,13 @@
 			document.body.appendChild(leaderboardContainer);
 
 			const headerRow = document.createElement("tr");
-			const headers = ["Player", "Wins", "Losses", "Diff"];
+			console.log("_settings.allowDraws", _settings.allowDraws);
+			const headers = [
+				"Player",
+				_settings.allowDraws ? "Points" : "Wins",
+				"Losses",
+				"Diff",
+			];
 			headers.forEach((headerText) => {
 				const th = document.createElement("th");
 				th.innerText = headerText;
@@ -143,7 +163,9 @@
 				td.innerText = player.player;
 				tr.appendChild(td);
 				td = document.createElement("td");
-				td.innerText = player.wins;
+				td.innerText = _settings.allowDraws
+					? player.points
+					: player.wins;
 				tr.appendChild(td);
 				td = document.createElement("td");
 				td.innerText = player.losses;
@@ -200,6 +222,7 @@
 					team1.players.forEach((player) => {
 						player.wins++;
 						player.score += score1 - score2;
+						player.points += 3;
 					});
 					team2.players.forEach((player) => {
 						player.losses++;
@@ -209,13 +232,27 @@
 					team2.players.forEach((player) => {
 						player.wins++;
 						player.score += score2 - score1;
+						player.points += 3;
 					});
 					team1.players.forEach((player) => {
 						player.losses++;
 						player.score += score1 - score2;
 					});
 				} else {
-					warningPopup("Warning", "Scores cannot be equal.");
+					if (_settings.allowDraws) {
+						team1.players.forEach((player) => {
+							player.points++;
+						});
+						team2.players.forEach((player) => {
+							player.points++;
+						});
+					} else {
+						warningPopup(
+							"Warning",
+							"Draws are not allowed. Please enter a winner."
+						);
+						return;
+					}
 				}
 			}
 			const nextRound = getGames();
@@ -246,6 +283,10 @@
 
 				games.appendChild(table);
 			});
+		});
+
+		settingsbtn.addEventListener("click", () => {
+			settings();
 		});
 
 		const games = document.getElementById("games");
@@ -402,6 +443,97 @@
 		return distributedGroups;
 	}
 
+	function settings() {
+		const html = `
+
+			<h1>Settings</h1>
+			<div id="settingsContent">
+				<div id="themetoggle">
+					<div class="switchlabel">Dark theme</div>
+					<label class="switch">
+						<input type="checkbox" id="themetoggle"/>
+						<span class="slider round"></span>
+					</label>
+				</div>
+				<div id="adtoggle">
+					<div class="switchlabel">Allow Draws</div>
+					<label class="switch">
+						<input type="checkbox" id="allowdrawtoggle"/>
+						<span class="slider round"></span>
+					</label>
+				</div>
+				<button id="newgamebtn">
+					New Game
+				</button>
+				<button id="rematchbtn">
+					Rematch
+				</button>
+			</div>
+
+		`;
+		const blur = document.createElement("div");
+		blur.id = "blur";
+		document.body.appendChild(blur);
+
+		const settingsPopup = document.createElement("div");
+		settingsPopup.id = "settingsPopup";
+		settingsPopup.innerHTML = html;
+		document.body.appendChild(settingsPopup);
+
+		blur.addEventListener("click", () => {
+			document.body.removeChild(settingsPopup);
+			document.body.removeChild(blur);
+		});
+
+		const switchInput = document.querySelector(
+			"#settingsContent .switch input"
+		);
+		switchInput.addEventListener("change", toggleTheme);
+		switchInput.checked = document.body.classList.contains("dark-theme");
+		allowdrawtoggle = document.querySelector("#allowdrawtoggle");
+		allowdrawtoggle.addEventListener("change", toggleDraws);
+		allowdrawtoggle.checked = _settings.allowDraws;
+
+		const newgamebtn = document.getElementById("newgamebtn");
+		newgamebtn.addEventListener("click", () => {
+			localStorage.removeItem("players");
+			localStorage.removeItem("groups");
+			location.href = "page.html";
+		})
+		const rematchbtn = document.getElementById("rematchbtn");
+		rematchbtn.addEventListener("click", () => {
+			location.reload();
+		})
+		switchInput.focus();
+	}
+
+	async function toggleDraws(event) {
+		_settings.allowDraws = event.target.checked;
+		localStorage.setItem("settings", JSON.stringify(_settings));
+		await window.__TAURI__.fs.writeTextFile(
+			`${await window.__TAURI__.path.appLocalDataDir()}settings.json`,
+			JSON.stringify(_settings)
+		);
+	}
+
+	async function toggleTheme(event) {
+		if (event.target.checked) {
+			document.body.classList.add("dark-theme");
+			document.body.classList.remove("light-theme");
+		} else {
+			document.body.classList.add("light-theme");
+			document.body.classList.remove("dark-theme");
+		}
+		_settings.theme = document.body.classList.contains("dark-theme")
+			? "dark"
+			: "light";
+		localStorage.setItem("settings", JSON.stringify(_settings));
+		await window.__TAURI__.fs.writeTextFile(
+			`${await window.__TAURI__.path.appLocalDataDir()}settings.json`,
+			JSON.stringify(_settings)
+		);
+	}
+
 	function lbsort(a, b) {
 		if (a.wins > b.wins) return -1;
 		if (a.wins < b.wins) return 1;
@@ -427,7 +559,7 @@
 		--light-bg: #ffffff;
 		--light-text: #1a1a1a;
 		--light-accent: #4dabf7;
-		--light-surface: #f5f5f5;
+		--light-surface: #c0c0c0;
 		--light-border: #e0e0e0;
 		--light-appbar: #f0f0f0;
 
@@ -703,5 +835,152 @@
 	#leaderboard {
 		width: 100%;
 		box-sizing: border-box;
+	}
+	#settingsPopup {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 400px;
+		height: 300px;
+		background: var(--surface-color);
+		border: 2px solid var(--accent-color);
+		border-radius: 15px;
+		z-index: 100;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+	#settingsContent {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 20px;
+		gap: 10px;
+	}
+	#settingsPopup > h1 {
+		position: absolute;
+		top: 0;
+		left: 0;
+		padding: 10px;
+	}
+
+	.switch {
+		position: relative;
+		display: inline-block;
+		width: 60px;
+		height: 34px;
+	}
+
+	.switch input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: #ccc;
+		-webkit-transition: 0.4s;
+		transition: 0.4s;
+	}
+
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 26px;
+		width: 26px;
+		left: 4px;
+		bottom: 4px;
+		background-color: white;
+		-webkit-transition: 0.4s;
+		transition: 0.4s;
+	}
+
+	input:checked + .slider {
+		background-color: var(--accent-color);
+	}
+
+	input:focus + .slider {
+		box-shadow: 0 0 1px var(--accent-color);
+	}
+
+	input:checked + .slider:before {
+		-webkit-transform: translateX(26px);
+		-ms-transform: translateX(26px);
+		transform: translateX(26px);
+	}
+
+	/* Rounded sliders */
+	.slider.round {
+		border-radius: 34px;
+	}
+
+	.slider.round:before {
+		border-radius: 50%;
+	}
+
+	.switchlabel {
+		font-size: 16px;
+		color: var(--text-color);
+		cursor: pointer;
+	}
+
+	#adtoggle {
+		display: flex;
+		width: 100%;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	#themetoggle {
+		display: flex;
+		width: 100%;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	button {
+		transition: all 0.2s ease;
+	}
+
+	button:hover {
+		filter: brightness(0.9);
+	}
+
+	button:active {
+		filter: brightness(0.8);
+		scale: 0.98;
+	}
+
+	#newgamebtn {
+		width: 100px;
+		height: 30px;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		font-size: 11pt;
+	}
+
+	#rematchbtn {
+		width: 100px;
+		height: 30px;
+		background: var(--accent-color);
+		color: var(--text-color);
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		font-size: 11pt;
 	}
 </style>
