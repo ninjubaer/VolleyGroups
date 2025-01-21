@@ -41,13 +41,13 @@
 			{ passive: false }
 		);
 
-		window.addEventListener(
+		/* window.addEventListener(
 			"contextmenu",
 			(event) => {
 				event.preventDefault();
 			},
 			{ passive: false }
-		);
+		); */
 
 		const { invoke, fs, updater, path } = window.__TAURI__;
 		const app = document.getElementById("app");

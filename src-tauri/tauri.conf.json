@@ -31,6 +31,9 @@
             "$APPLOCALDATA/**/*"
           ]
         }
+      },
+      "path": {
+        "all": true
       }
     },
     "windows": [
