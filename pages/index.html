@@ -75,7 +75,7 @@
 				}
 			}
 			localStorage.setItem("settings", JSON.stringify(settings));
-		})().then(() => console.log("Settings updated"));
+		})()
 
 
 		updater.onUpdaterEvent(({ status }) => {

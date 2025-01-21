@@ -73,13 +73,13 @@
 			{ passive: false }
 		);
 
-		window.addEventListener(
+/* 		window.addEventListener(
 			"contextmenu",
 			(event) => {
 				event.preventDefault();
 			},
 			{ passive: false }
-		)
+		) */
 
 		_settings = JSON.parse(localStorage.getItem("settings"));
 		document.body.classList.remove("dark-theme", "light-theme");
@@ -142,7 +142,6 @@
 			document.body.appendChild(leaderboardContainer);
 
 			const headerRow = document.createElement("tr");
-			console.log("_settings.allowDraws", _settings.allowDraws);
 			const headers = [
 				"Player",
 				_settings.allowDraws ? "Points" : "Wins",
@@ -280,7 +279,9 @@
 				td.appendChild(input);
 				tr.appendChild(td);
 				table.appendChild(tr);
-
+				input.addEventListener("wheel", (event) => {
+					event.preventDefault();
+				});
 				games.appendChild(table);
 			});
 		});
@@ -291,7 +292,6 @@
 
 		const games = document.getElementById("games");
 		const gamelist = getGames();
-		console.log(gamelist);
 		gamelist.forEach((team, index) => {
 			let table = document.createElement("table");
 			let caption = document.createElement("caption");
@@ -314,6 +314,9 @@
 			td.appendChild(input);
 			tr.appendChild(td);
 			table.appendChild(tr);
+			input.addEventListener("wheel", (event) => {
+				event.preventDefault();
+			});
 
 			games.appendChild(table);
 		});
@@ -402,19 +405,6 @@
 
 			let team1 = [];
 			let team2 = [];
-			console.log(playersInMatch.length);
-			console.log(
-				playersInMatch[0],
-				playersInMatch[playersInMatch.length - 1 - 0]
-			);
-			console.log(
-				playersInMatch[1],
-				playersInMatch[playersInMatch.length - 1 - 1]
-			);
-			console.log(
-				playersInMatch[2],
-				playersInMatch[playersInMatch.length - 1 - 2]
-			);
 			for (let i = 0; i < playersInMatch.length / 2; i += 2) {
 				team1.push(playersInMatch[i]);
 				team2.push(playersInMatch[i + 1]);
