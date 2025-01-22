@@ -6,12 +6,12 @@
   },
   "package": {
     "productName": "VolleyGroups",
-    "version": "0.0.1"
+    "version": "0.0.3"
   },
   "tauri": {
     "updater": {
       "active": true,
-      "dialog": true,
+      "dialog": false,
       "endpoints": [
         "https://volleygroups.ninju.dev/api/update"
       ],

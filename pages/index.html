@@ -41,15 +41,15 @@
 			{ passive: false }
 		);
 
-		/* window.addEventListener(
+		window.addEventListener(
 			"contextmenu",
 			(event) => {
 				event.preventDefault();
 			},
 			{ passive: false }
-		); */
+		);
 
-		const { invoke, fs, updater, path } = window.__TAURI__;
+		const { invoke, fs, updater, path, app: tauriapp } = window.__TAURI__;
 		const app = document.getElementById("app");
 		const appbar = document.getElementById("appbar");
 		const title = document.getElementById("title");
@@ -75,7 +75,7 @@
 				}
 			}
 			localStorage.setItem("settings", JSON.stringify(settings));
-		})()
+		})();
 
 
 		updater.onUpdaterEvent(({ status }) => {
@@ -98,6 +98,45 @@
 		startgamebtn.addEventListener("click", () => {
 			window.location.href = "/page.html";
 		});
+
+		(async () => {
+			const { manifest, shouldUpdate } = await updater.checkUpdate();
+			console.log(manifest);
+			console.log(updater);
+			if (shouldUpdate) {
+				const updatePrompt = document.createElement("div");
+				updatePrompt.id = "updatePrompt";
+				updatePrompt.innerHTML = `
+					<h1>Update available</h1>
+					<div id="updaterText">
+						<p>There is an update available for the app. Do you want to update now?</p>
+						<p>Current version: ${await tauriapp.getVersion()}</p>
+						<p>New version: ${manifest.version}</p>
+						<p id="fullChangeLogBTN">Full changelog</p>
+					</div>
+					<div id="updaterButtons">
+						<button id="cancelBtn">Cancel</button>
+						<button id="updateBtn">Update</button>
+					</div>
+				`;
+				document.body.appendChild(updatePrompt);
+				const updateBtn = document.getElementById("updateBtn");
+				const cancelBtn = document.getElementById("cancelBtn");
+				const fullChangeLogBTN = document.getElementById("fullChangeLogBTN");
+
+				updateBtn.addEventListener("click", async () => {
+					updater.installUpdate();
+				});
+
+				cancelBtn.addEventListener("click", () => {
+					updatePrompt.remove();
+				});
+
+				fullChangeLogBTN.addEventListener("click", () => {
+					window.open("https://github.com/ninjubaer/volleygroups/releases/latest", "_blank");
+				})
+			}
+		})();
 	});
 </script>
 <style>
@@ -259,4 +298,86 @@
 	.namecolor {
 		color: var(--accent-color);
 	}
+
+	#updatePrompt {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 350px;
+		height: 300px;
+		background: var(--surface-color);
+		border-radius: 15px;
+		box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		gap: 20px;
+	}
+
+	#updaterPrompt p {
+		padding: 5px;
+	}
+
+	#updateBtn,
+	#cancelBtn {
+		width: 100%;
+		height: 40px;
+		border: none;
+		border-radius: 7px;
+		cursor: pointer;
+	}
+
+	#updateBtn {
+		background: var(--accent-color);
+		color: var(--text-color);
+	}
+
+	#updateBtn:hover {
+		filter: brightness(0.9);
+	}
+
+	#updateBtn:active {
+		filter: brightness(0.8);
+		scale: 0.99;
+	}
+
+	#cancelBtn {
+		background: #ff5f57;
+		color: var(--text-color);
+	}
+
+	#cancelBtn:hover {
+		filter: brightness(0.9);
+	}
+
+	#cancelBtn:active {
+		filter: brightness(0.8);
+		scale: 0.99;
+	}
+
+	#updaterText {
+		padding: 0 20px;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		gap: 15px;
+	}
+
+	#updaterButtons {
+		padding: 0 20px;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		gap: 5px;
+	}
+
+	#fullChangeLogBTN {
+		color: var(--accent-color);
+		cursor: pointer;
+		font-size: small;
+	}
+	
 </style>
