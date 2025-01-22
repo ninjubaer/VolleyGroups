@@ -525,7 +525,7 @@
 	}
 
 	function lbsort(a, b) {
-		if (a.wins > b.wins) return -1;
+		if ((_settings.allowDraws ? a.points : a.wins) > (_settings.allowDraws ? b.points : b.wins)) return -1;
 		if (a.wins < b.wins) return 1;
 		if (a.score > b.score) return -1;
 		if (a.score < b.score) return 1;
