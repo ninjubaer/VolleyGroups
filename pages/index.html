@@ -11,6 +11,7 @@
 				<p id="title">VolleyGroups</p>
 				<button id="closecircle"></button>
 				<button id="minimizecircle"></button>
+				<button id="maximizecircle"></button>
 			</div>
 			<button id="startgamebtn">New Game</button>
 			<p class="title-text">
@@ -55,6 +56,7 @@
 		const title = document.getElementById("title");
 		const closecircle = document.getElementById("closecircle");
 		const minimizecircle = document.getElementById("minimizecircle");
+		const maximizecircle = document.getElementById("maximizecircle");
 		const startgamebtn = document.getElementById("startgamebtn");
 
 		(async function updateSettings() {
@@ -81,8 +83,10 @@
 		updater.onUpdaterEvent(({ status }) => {
 			console.log("Updater event:", status);
 		});
-
+		let lastAppbarMousedown = 0;
 		appbar.addEventListener("mousedown", async (e) => {
+			if (Date.now() - lastAppbarMousedown < 400) return invoke("maximize_window");
+			lastAppbarMousedown = Date.now();
 			if (e.target != appbar && e.target != title) return;
 			invoke("drag_window");
 		});
@@ -97,6 +101,10 @@
 
 		startgamebtn.addEventListener("click", () => {
 			window.location.href = "/page.html";
+		});
+
+		maximizecircle.addEventListener("click", async () => {
+			invoke("maximize_window");
 		});
 
 		(async () => {
@@ -175,8 +183,8 @@
 		--surface-color: var(--light-surface);
 		--border-color: var(--light-border);
 		--appbar-color: var(--light-appbar);
-		--width: 700px;
-		--height: 400px;
+		--width: 100vw;
+		--height: 100vh;
 	}
 
 	@media (prefers-color-scheme: dark) {
@@ -263,7 +271,25 @@
 	#minimizecircle:hover {
 		filter: brightness(0.9);
 	}
-	#minimizecircle:active {
+	#minimmizecircle:active {
+		filter: brightness(0.8);
+	}
+	#maximizecircle {
+		width: 12px;
+		height: 12px;
+		position: fixed;
+		top: 9px;
+		left: 52px;
+		border-radius: 50%;
+		background: #27c93f;
+		border: none;
+		cursor: pointer;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	}
+	#maximizecircle:hover {
+		filter: brightness(0.9);
+	}
+	#maximizecircle:active {
 		filter: brightness(0.8);
 	}
 	#title {

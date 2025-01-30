@@ -11,23 +11,19 @@
 				<p id="title">VolleyGroups</p>
 				<button id="closecircle"></button>
 				<button id="minimizecircle"></button>
+				<button id="maximizecircle"></button>
 			</div>
 			<div id="content">
 				<div id="players">
 					<h1>Players</h1>
 					<textarea id="playerlist" spellcheck="false"></textarea>
+					<svg id="shuffle-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64L64 32zm64 96a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM96 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM224 224a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm64-64a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm32 160a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg>
+					
 				</div>
 				<div id="groups">
 					<h1>Groups:</h1>
 					<div id="numberofgroups">
-						<input
-							type="range"
-							id="groupslider"
-							min="0"
-							max="0"
-							value="0"
-							step="2"
-						/>
+						<input type="range" id="groupslider" min="0" max="0" value="0" step="2" />
 						<p id="groupnumer">0</p>
 					</div>
 				</div>
@@ -37,9 +33,9 @@
 	</body>
 </html>
 <script>
-	document.addEventListener("DOMContentLoaded", async () => {
+	document.addEventListener('DOMContentLoaded', async () => {
 		window.addEventListener(
-			"wheel",
+			'wheel',
 			(event) => {
 				if (event.deltaX < 0) {
 					event.preventDefault();
@@ -49,7 +45,7 @@
 		);
 
 		window.addEventListener(
-			"touchstart",
+			'touchstart',
 			(event) => {
 				if (event.touches.length > 1) {
 					event.preventDefault();
@@ -70,120 +66,120 @@
 			? JSON.parse(localStorage.getItem("settings"))
 			: { theme: "dark", allowDraws: false };
 
-		document.body.classList.remove("dark-theme", "light-theme");
+		document.body.classList.remove('dark-theme', 'light-theme');
 		document.body.classList.add(`${settings.theme}-theme`);
 
-
 		const { invoke } = window.__TAURI__;
-		const app = document.getElementById("app");
-		const appbar = document.getElementById("appbar");
-		const title = document.getElementById("title");
-		const closecircle = document.getElementById("closecircle");
-		const minimizecircle = document.getElementById("minimizecircle");
-		const playerlist = document.getElementById("playerlist");
-		const slider = document.getElementById("groupslider");
-		const startbutton = document.getElementById("startbutton");
-
-		if (playerlist.value != "") {
-			let players = playerlist.value.split("\n");
+		const app = document.getElementById('app');
+		const appbar = document.getElementById('appbar');
+		const title = document.getElementById('title');
+		const closecircle = document.getElementById('closecircle');
+		const minimizecircle = document.getElementById('minimizecircle');
+		const maximizecircle = document.getElementById('maximizecircle');
+		const playerlist = document.getElementById('playerlist');
+		const slider = document.getElementById('groupslider');
+		const startbutton = document.getElementById('startbutton');
+		const shuffleicon = document.getElementById('shuffle-icon');
+		if (playerlist.value != '') {
+			let players = playerlist.value.split('\n');
 			for (let i = 0; i < players.length; i++) {
-				if (players[i].trim() == "") {
+				if (players[i].trim() == '') {
 					players.splice(i, 1);
 					i--;
 				}
 			}
 		}
 
+		let lastAppbarMousedown = 0;
 		appbar.addEventListener("mousedown", async (e) => {
+			if (Date.now() - lastAppbarMousedown < 400) return invoke("maximize_window");
+			lastAppbarMousedown = Date.now();
 			if (e.target != appbar && e.target != title) return;
 			invoke("drag_window");
 		});
-
-		closecircle.addEventListener("click", async () => {
-			invoke("close_window");
+		closecircle.addEventListener('click', async () => {
+			invoke('close_window');
 		});
 
-		minimizecircle.addEventListener("click", async () => {
-			invoke("minimize_window");
+		minimizecircle.addEventListener('click', async () => {
+			invoke('minimize_window');
 		});
 
-		playerlist.addEventListener("input", () => {
-			let players = playerlist.value.split("\n");
+		maximizecircle.addEventListener('click', async () => {
+			invoke('maximize_window');
+		});
+
+		playerlist.addEventListener('input', () => {
+			let players = playerlist.value.split('\n');
 			for (let i = 0; i < players.length; i++) {
-				if (players[i].trim() == "") {
+				if (players[i].trim() == '') {
 					players.splice(i, 1);
 					i--;
 				}
 			}
 			const playerslength = players.length;
-			document.getElementById("groupslider").max =
+			document.getElementById('groupslider').max =
 				playerslength & 1 ? playerslength - 1 : playerslength;
 		});
 
-		slider.addEventListener("input", () => {
-			document.getElementById("groupnumer").innerText = slider.value;
+		slider.addEventListener('input', () => {
+			document.getElementById('groupnumer').innerText = slider.value;
 		});
 
-		startbutton.addEventListener("click", () => {
-			if (playerlist.value.split("\n").length < 2) {
-				warningPopup(
-					"Not enough players",
-					"You need at least 2 players to start the game."
-				);
+		startbutton.addEventListener('click', () => {
+			if (playerlist.value.split('\n').length < 2) {
+				warningPopup('Not enough players', 'You need at least 2 players to start the game.');
 				return;
 			}
 			if (slider.value == 0) {
-				warningPopup(
-					"No groups",
-					"You need at least 1 group to start the game."
-				);
+				warningPopup('No groups', 'You need at least 1 group to start the game.');
 				return;
 			}
-			let players = playerlist.value.split("\n");
+			let players = playerlist.value.split('\n');
 			for (let i = 0; i < players.length; i++) {
-				if (players[i].trim() == "") {
+				if (players[i].trim() == '') {
 					players.splice(i, 1);
 					i--;
 				}
 			}
-			localStorage.setItem("players", JSON.stringify(players));
-			localStorage.setItem("groups", slider.value);
-			window.location.href = "/game.html";
+			localStorage.setItem('players', JSON.stringify(players));
+			localStorage.setItem('groups', slider.value);
+			window.location.href = '/game.html';
 		});
 
 		function warningPopup(title, text) {
-			const blur = document.createElement("div");
-			blur.style.position = "fixed";
-			blur.style.top = "30px";
-			blur.style.left = "0";
-			blur.style.width = "100%";
-			blur.style.borderBottomLeftRadius = "15px";
-			blur.style.borderBottomRightRadius = "15px";
-			blur.style.height = "calc(100% - 30px)";
-			blur.style.background = "rgba(0, 0, 0, 0.2)";
-			blur.style.backdropFilter = "blur(2px)";
-			blur.style.webkitBackdropFilter = "blur(2px)";
-			blur.style.zIndex = "99";
+			const blur = document.createElement('div');
+			blur.style.position = 'fixed';
+			blur.style.top = '30px';
+			blur.style.left = '0';
+			blur.style.width = '100%';
+			blur.style.borderBottomLeftRadius = '15px';
+			blur.style.borderBottomRightRadius = '15px';
+			blur.style.height = 'calc(100% - 30px)';
+			blur.style.background = 'rgba(0, 0, 0, 0.2)';
+			blur.style.backdropFilter = 'blur(2px)';
+			blur.style.webkitBackdropFilter = 'blur(2px)';
+			blur.style.zIndex = '99';
 			document.body.appendChild(blur);
 
-			const warning = document.createElement("div");
-			warning.style.position = "fixed";
-			warning.style.top = "50%";
-			warning.style.left = "50%";
-			warning.style.transform = "translate(-50%, -50%)";
-			warning.style.width = "300px";
-			warning.style.height = "200px";
-			warning.style.background = "var(--surface-color)";
-			warning.style.border = "2px solid var(--accent-color)";
-			warning.style.borderRadius = "15px";
-			warning.style.zIndex = "100";
-			warning.style.display = "flex";
-			warning.style.flexDirection = "column";
-			warning.style.alignItems = "center";
-			warning.style.justifyContent = "center";
-			warning.style.gap = "15px";
-			warning.style.padding = "20px";
-			warning.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+			const warning = document.createElement('div');
+			warning.style.position = 'fixed';
+			warning.style.top = '50%';
+			warning.style.left = '50%';
+			warning.style.transform = 'translate(-50%, -50%)';
+			warning.style.width = '300px';
+			warning.style.height = '200px';
+			warning.style.background = 'var(--surface-color)';
+			warning.style.border = '2px solid var(--accent-color)';
+			warning.style.borderRadius = '15px';
+			warning.style.zIndex = '100';
+			warning.style.display = 'flex';
+			warning.style.flexDirection = 'column';
+			warning.style.alignItems = 'center';
+			warning.style.justifyContent = 'center';
+			warning.style.gap = '15px';
+			warning.style.padding = '20px';
+			warning.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.2)';
 			warning.innerHTML = `
                 <h1>${title}</h1>
                 <p>${text}</p>
@@ -191,21 +187,22 @@
             `;
 			document.body.appendChild(warning);
 			let closewarning;
-			blur.addEventListener("click", () => {
+			blur.addEventListener('click', () => {
 				document.body.removeChild(warning);
 				document.body.removeChild(blur);
 			});
-			(closewarning =
-				document.getElementById("closewarning")).addEventListener(
-				"click",
-				(e) => {
-					e.stopPropagation();
-					document.body.removeChild(warning);
-					document.body.removeChild(blur);
-				}
-			);
+			(closewarning = document.getElementById('closewarning')).addEventListener('click', (e) => {
+				e.stopPropagation();
+				document.body.removeChild(warning);
+				document.body.removeChild(blur);
+			});
 			closewarning.focus();
 		}
+		shuffleicon.addEventListener("click", () => {
+			let players = playerlist.value.split('\n');
+			players = players.sort(() => Math.random() - 0.5);
+			playerlist.value = players.join('\n');
+		})
 	});
 </script>
 <style>
@@ -215,10 +212,10 @@
 		padding: 0;
 		box-sizing: inherit;
 		@font-face {
-			font-family: "Roboto";
-			src: url("assets:///assets/Roboto-Bold.ttf") format("truetype");
+			font-family: 'Roboto';
+			src: url('assets:///assets/Roboto-Bold.ttf') format('truetype');
 		}
-		font-family: "Roboto";
+		font-family: 'Roboto';
 	}
 	:root {
 		/* Light theme variables */
@@ -244,8 +241,8 @@
 		--surface-color: var(--light-surface);
 		--border-color: var(--light-border);
 		--appbar-color: var(--light-appbar);
-		--width: 700px;
-		--height: 400px;
+		--width: 100vw;
+		--height: 100vh;
 	}
 
 	@media (prefers-color-scheme: dark) {
@@ -335,6 +332,24 @@
 	#minimizecircle:active {
 		filter: brightness(0.8);
 	}
+	#maximizecircle {
+		width: 12px;
+		height: 12px;
+		position: fixed;
+		top: 9px;
+		left: 52px;
+		border-radius: 50%;
+		background: #27c93f;
+		border: none;
+		cursor: pointer;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	}
+	#maximizecircle:hover {
+		filter: brightness(0.9);
+	}
+	#maximizecircle:active {
+		filter: brightness(0.8);
+	}
 	#title {
 		position: fixed;
 		top: 7px;
@@ -343,54 +358,39 @@
 		font-size: 14px;
 		font-weight: 600;
 	}
+	#content {
+		width: 100%;
+		height: 100%;
+	}
 	#groups {
-		margin: 15px 20px 0 20px;
+		position: fixed;
+		bottom: 70px;
+		padding: 10px 20px;
+		width: 100%;
 	}
-	#removeGroup {
-		position: relative;
-		top: 5px;
-		width: calc(var(--width) / 2 - 25px);
-		outline: none;
-		background: var(--accent-color);
-		color: var(--text-color);
-		border-radius: 5px;
-		height: 30px;
-		border: none;
+	#numberofgroups {
+		width: 100%;
 	}
-	#addGroup {
-		position: relative;
-		top: 5px;
-		left: 10px;
-		width: calc(var(--width) / 2 - 25px);
-		outline: none;
-		background: var(--accent-color);
-		color: var(--text-color);
-		border-radius: 5px;
-		height: 30px;
-		border: none;
+	#groupslider {
+		width: 100%;
+		accent-color: var(--accent-color);
+		background-color: var(--text-color);
 	}
-	#addGroup:hover,
-	#removeGroup:hover {
-		filter: brightness(0.9);
-	}
-	#addGroup:active,
-	#removeGroup:active {
-		filter: brightness(0.8);
-	}
-	#addGroup:focus,
-	#removeGroup:focus {
-		border: 1px solid var(--text-color);
+	#groupnumer {
+		text-align: center;
+		font-size: 23pt;
 	}
 	#players {
 		width: calc(var(--width) - 40px);
 		position: relative;
 		left: 20px;
 		top: 10px;
+		height: calc(100% - 270px);
 	}
 	#playerlist {
 		margin-top: 5px;
 		width: 100%;
-		height: 140px;
+		height: 100%;
 		border: 2px solid var(--accent-color);
 		outline: none;
 		border-radius: 15px;
@@ -408,23 +408,11 @@
 	#playerlist:focus {
 		outline: none;
 	}
-	#groupslider {
-		accent-color: var(--accent-color);
-		width: 100%;
-		margin-top: 5px;
-		outline: none;
-		border: none;
-	}
-	#groupnumer {
-		font-size: 25pt;
-		position: fixed;
-		left: 50%;
-		transform: translateX(-50%);
-	}
+
 	#startbutton {
 		position: fixed;
 		left: 50%;
-		top: 350px;
+		bottom: 20px;
 		transform: translateX(-50%);
 		width: calc(100% - 40px);
 		outline: none;
@@ -437,5 +425,22 @@
 	}
 	h1 {
 		font-size: 20pt;
+	}
+	#shuffle-icon {
+		width: 30px;
+		height: 30px;
+		position: fixed;
+		top: 90px;
+		right: 40px;
+		transition: all 0.2s ease;
+	}
+	#shuffle-icon > path {
+		fill: var(--accent-color);
+	}
+	#shuffle-icon:hover {
+		filter: brightness(0.9);
+	}
+	#shuffle-icon:active {
+		transform: scale(0.97);
 	}
 </style>

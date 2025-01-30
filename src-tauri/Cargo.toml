@@ -1,10 +1,10 @@
 [package]
 name = "app"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.4.0"
+description = "An app to create groups (originally for Volleyball but can be used for anything)"
+authors = ["ninju"]
 license = ""
-repository = ""
+repository = "https://github.com/ninjubaer/VolleyGroups"
 default-run = "app"
 edition = "2021"
 rust-version = "1.60"

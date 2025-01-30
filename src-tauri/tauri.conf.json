@@ -6,7 +6,7 @@
   },
   "package": {
     "productName": "VolleyGroups",
-    "version": "0.0.3"
+    "version": "0.0.4"
   },
   "tauri": {
     "updater": {
@@ -41,7 +41,7 @@
         "title": "VolleyGroups",
         "width": 700,
         "height": 400,
-        "resizable": false,
+        "resizable": true,
         "fullscreen": false,
         "decorations": false,
         "transparent": true,

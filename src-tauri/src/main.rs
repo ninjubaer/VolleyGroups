@@ -16,6 +16,14 @@ async fn minimize_window(window: tauri::Window) {
 async fn close_window(window: tauri::Window) {
     window.close().unwrap();
 }
+#[tauri::command]
+async fn maximize_window(window: tauri::Window) {
+    if window.is_maximized().unwrap() {
+        window.unmaximize().unwrap();
+    } else {
+        window.maximize().unwrap();
+    }
+}
 
 fn main() {
     tauri::Builder::default()
@@ -28,7 +36,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             drag_window,
             minimize_window,
-            close_window
+            close_window,
+            maximize_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
